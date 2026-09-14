@@ -284,3 +284,70 @@ For V1:
 - Simple admin API; UI can come later
 
 The first implementation should optimize for correctness and reproducibility, not statistical sophistication. Sequential testing, confidence intervals, and automated winner selection can be added after the event and assignment data are trustworthy.
+
+
+## 11. V1 implementation boundary
+
+The Go API deliberately keeps application logic outside the experimentation service.
+
+The integrating application owns:
+
+- deciding whether a user satisfies product-specific eligibility criteria;
+- deciding when the assigned experience was actually rendered;
+- emitting exposure events;
+- emitting business outcome events;
+- computing product-specific metrics.
+
+The experimentation service owns only:
+
+- experiment definitions and variant weights;
+- experiment status;
+- stable subject-to-cohort assignment;
+- assignment identity and bucket information.
+
+The resolve request therefore contains an `eligible` boolean:
+
+```json
+{
+  "subject_id": "123",
+  "eligible": true
+}
+```
+
+The service does not inspect country, app version, subscription state, SKU details, or any other application-specific context.
+
+## 12. Gin API implementation
+
+The current API exposes:
+
+```text
+GET  /healthz
+POST /v1/experiments
+GET  /v1/experiments
+GET  /v1/experiments/:key
+POST /v1/experiments/:key/resolve
+```
+
+The implementation follows the base Go layout:
+
+```text
+cmd/api/                         process entrypoint
+internal/config/                 environment configuration
+internal/router/                 Gin route registration
+internal/handler/                HTTP decoding and response mapping
+internal/service/                validation and assignment logic
+internal/store/                  in-memory persistence adapter
+model/                           domain types
+```
+
+The service uses a 100-slot deterministic bucket space. Numeric subject IDs use `subject_id % 100`, which preserves the same cohort for the same subject and makes 50/50 and 90/10 rollouts straightforward. Assignments are persisted in the in-memory store after the first eligible resolution, so later allocation changes do not move already-assigned subjects within the process.
+
+## 13. Deliberate V1 limitations
+
+- No database or cross-instance assignment consistency.
+- No experiment update or lifecycle administration endpoint yet.
+- No exposure/outcome event ingestion.
+- No statistical analysis or automatic winner selection.
+- No application-specific eligibility rule engine.
+
+The next production-oriented seam should be a durable `ExperimentStore` adapter, not application-specific logic in the service.
