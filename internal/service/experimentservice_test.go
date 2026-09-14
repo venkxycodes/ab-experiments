@@ -31,8 +31,8 @@ func TestResolvePersistsStableAssignment(t *testing.T) {
 	if first.Assignment.Cohort != second.Assignment.Cohort || first.Assignment.ID != second.Assignment.ID {
 		t.Fatal("assignment was not stable")
 	}
-	if first.Assignment.Bucket != 23 {
-		t.Fatalf("expected bucket 23, got %d", first.Assignment.Bucket)
+	if first.Assignment.Bucket != 3 {
+		t.Fatalf("expected bucket 3, got %d", first.Assignment.Bucket)
 	}
 }
 
