@@ -37,9 +37,9 @@ Analytics pipeline computes experiment metrics
 
 Eligibility and assignment are intentionally separate:
 
-1. Check whether the user satisfies the experiment's eligibility rules.
-2. Select the active experiment for the requested feature.
-3. Assign the eligible user to a variant.
+1. The integrating application evaluates its product-specific eligibility rules.
+2. The application asks this service to resolve the active experiment.
+3. The service assigns the eligible user to a variant.
 4. Persist or derive the assignment consistently.
 5. Emit an exposure event only when the assigned experience is actually shown.
 
@@ -54,7 +54,6 @@ An experiment contains:
 - `status`: draft, running, paused, or completed
 - `variants`: control and treatment
 - `allocation`: traffic percentage per variant
-- `eligibility_rules`
 - `start_time` and optional `end_time`
 - `assignment_version`
 - `created_by`
@@ -67,11 +66,7 @@ Example:
   "variants": [
     {"key": "control", "weight": 50},
     {"key": "treatment", "weight": 50}
-  ],
-  "eligibility_rules": {
-    "country": ["IN"],
-    "app_version_min": "4.2.0"
-  }
+  ]
 }
 ```
 
@@ -162,19 +157,15 @@ Recommended default: use persisted assignments for user-facing experiments where
 ### Resolve assignment
 
 ```http
-POST /v1/experiments/resolve
+POST /v1/experiments/:key/resolve
 ```
 
-Request:
+The integrating application evaluates eligibility and sends only the result:
 
 ```json
 {
-  "subject_id": "user-123",
-  "experiment_key": "onboarding_sku_discovery",
-  "context": {
-    "country": "IN",
-    "app_version": "4.2.1"
-  }
+  "subject_id": "123",
+  "eligible": true
 }
 ```
 
@@ -184,23 +175,13 @@ Response:
 {
   "experiment_key": "onboarding_sku_discovery",
   "eligible": true,
-  "variant": "treatment",
-  "assignment_id": "a_123",
-  "config": {
-    "onboarding_flow": "new"
-  }
+  "cohort": "treatment",
+  "bucket": 73,
+  "assignment_id": "assignment_..."
 }
 ```
 
-For an ineligible user:
-
-```json
-{
-  "experiment_key": "onboarding_sku_discovery",
-  "eligible": false,
-  "variant": null
-}
-```
+For an ineligible user, the service returns `eligible: false` without creating an assignment.
 
 ### Experiment administration
 
