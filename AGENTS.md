@@ -27,4 +27,4 @@ This repository is a small A/B experimentation service and design exercise. Use 
 
 ## Current verification
 
-This repository currently contains design documentation only. When implementation is added, document and run the relevant test, lint, and build commands here.
+The current implementation is a Gin API. Run `go mod tidy`, `go test ./...`, and `go vet ./...` before considering implementation work complete. The in-memory store is a deliberate V1 adapter; do not add application-specific eligibility rules to the service.
