@@ -75,14 +75,14 @@ Example:
 Use a stable user identifier as the assignment key. For the simple two-variant case:
 
 ```text
-bucket = hash(experiment_key + ":" + user_id) % 100
+bucket = hash(experiment_key + ":" + user_id) % 10
 ```
 
 The bucket is mapped to the configured cumulative allocation:
 
 ```text
-0..49  -> control
-50..99 -> treatment
+0..4 -> control
+5..9 -> treatment
 ```
 
 The V1 implementation uses `user_id % 10` for numeric IDs, matching the ten stable rollout cohorts discussed for this service. Non-numeric IDs use a stable hash. The important property is that the same user always maps to the same bucket for the same experiment.
