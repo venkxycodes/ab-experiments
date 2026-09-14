@@ -60,7 +60,7 @@ Example response:
 }
 ```
 
-Numeric subject IDs use `subject_id % 100`; non-numeric IDs use a stable FNV-1a hash. Variant weights must sum to 100.
+Numeric subject IDs use `subject_id % 10`; non-numeric IDs use a stable FNV-1a hash. Variant weights must sum to 100 and use 10% increments.
 
 ## Design
 
