@@ -112,7 +112,7 @@ func validateExperiment(experiment *model.Experiment) error {
 	seen := make(map[string]struct{}, len(experiment.Variants))
 	total := 0
 	for _, variant := range experiment.Variants {
-		if strings.TrimSpace(variant.Key) == "" || variant.Weight < 0 {
+		if strings.TrimSpace(variant.Key) == "" || variant.Weight < 0 || variant.Weight%10 != 0 {
 			return ErrInvalidExperiment
 		}
 		if _, exists := seen[variant.Key]; exists {
@@ -129,18 +129,18 @@ func validateExperiment(experiment *model.Experiment) error {
 
 func stableBucket(experimentKey, subjectID string) int {
 	if numericID, err := strconv.ParseUint(subjectID, 10, 64); err == nil {
-		return int(numericID % 100)
+		return int(numericID % 10)
 	}
 	hasher := fnv.New32a()
 	_, _ = hasher.Write([]byte(experimentKey + ":" + subjectID))
-	return int(hasher.Sum32() % 100)
+	return int(hasher.Sum32() % 10)
 }
 
 func chooseCohort(variants []model.Variant, bucket int) string {
 	cursor := 0
 	for _, variant := range variants {
 		cursor += variant.Weight
-		if bucket < cursor {
+		if bucket < cursor/10 {
 			return variant.Key
 		}
 	}
