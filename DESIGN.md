@@ -85,7 +85,7 @@ The bucket is mapped to the configured cumulative allocation:
 50..99 -> treatment
 ```
 
-A plain `user_id % 10` works for a simple internal prototype, but hashing is safer because user IDs may have patterns or be sequential. The important property is that the same user always maps to the same bucket for the same experiment.
+The V1 implementation uses `user_id % 10` for numeric IDs, matching the ten stable rollout cohorts discussed for this service. Non-numeric IDs use a stable hash. The important property is that the same user always maps to the same bucket for the same experiment.
 
 Never use random assignment per request. That would make users switch experiences and corrupt the measurement.
 
@@ -99,7 +99,7 @@ A practical rollout sequence is:
 4. After the experiment has enough evidence, roll out the winner to 90/10 or 100/0.
 5. Complete the experiment and preserve the assignment configuration for analysis.
 
-For allocations in multiples of 10, a ten-bucket model is easy to reason about:
+For allocations in multiples of 10, the ten-bucket model is easy to reason about:
 
 ```text
 bucket = hash(experiment_key + ":" + user_id) % 10
@@ -321,7 +321,7 @@ internal/store/                  in-memory persistence adapter
 model/                           domain types
 ```
 
-The service uses a 100-slot deterministic bucket space. Numeric subject IDs use `subject_id % 100`, which preserves the same cohort for the same subject and makes 50/50 and 90/10 rollouts straightforward. Assignments are persisted in the in-memory store after the first eligible resolution, so later allocation changes do not move already-assigned subjects within the process.
+The service uses a ten-slot deterministic bucket space. Numeric subject IDs use `subject_id % 10`, which preserves the same cohort for the same subject and makes 50/50 and 90/10 rollouts straightforward. Assignments are persisted in the in-memory store after the first eligible resolution, so later allocation changes do not move already-assigned subjects within the process.
 
 ## 13. Deliberate V1 limitations
 
