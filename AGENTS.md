@@ -27,4 +27,4 @@ This repository is a small A/B experimentation service and design exercise. Use 
 
 ## Current verification
 
-The current implementation is a Gin API. Run `go mod tidy`, `go test ./...`, and `go vet ./...` before considering implementation work complete. The in-memory store is a deliberate V1 adapter; do not add application-specific eligibility rules to the service.
+The current implementation is a Gin API. Run `go mod tidy`, `go test ./...`, and `go vet ./...` before considering implementation work complete. The in-memory store is the test/local fallback. The durable backend is GORM/PostgreSQL; do not add application-specific eligibility rules to the service.
