@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -29,7 +30,12 @@ func (h *ExperimentHandler) CreateExperiment(c *gin.Context) {
 		writeError(c, err)
 		return
 	}
-	created, _ := h.service.GetExperiment(c.Request.Context(), experiment.Key)
+	experiment.Key = strings.TrimSpace(experiment.Key)
+	created, err := h.service.GetExperiment(c.Request.Context(), experiment.Key)
+	if err != nil {
+		writeError(c, err)
+		return
+	}
 	c.JSON(http.StatusCreated, created)
 }
 
