@@ -317,11 +317,11 @@ internal/config/                 environment configuration
 internal/router/                 Gin route registration
 internal/handler/                HTTP decoding and response mapping
 internal/service/                validation and assignment logic
-internal/store/                  PostgreSQL and in-memory persistence adapters
+internal/store/                  PostgreSQL persistence adapter and versioned migrations
 model/                           domain types
 ```
 
-The service uses a ten-slot deterministic bucket space. Numeric subject IDs use `subject_id % 10`, which preserves the same cohort for the same subject and makes 50/50 and 90/10 rollouts straightforward. Assignments are persisted in the in-memory store after the first eligible resolution, so later allocation changes do not move already-assigned subjects within the process.
+The service uses a ten-slot deterministic bucket space. Numeric subject IDs use `subject_id % 10`, which preserves the same cohort for the same subject and makes 50/50 and 90/10 rollouts straightforward. Assignments are persisted in PostgreSQL after the first eligible resolution, so later allocation changes do not move already-assigned subjects.
 
 ## 13. Deliberate V1 limitations
 
@@ -330,7 +330,7 @@ The service uses a ten-slot deterministic bucket space. Numeric subject IDs use 
 - No statistical analysis or automatic winner selection.
 - No application-specific eligibility rule engine.
 
-PostgreSQL is now the durable `ExperimentStore` adapter. Before production, replace AutoMigrate with versioned schema migrations; keep application-specific eligibility logic outside this service.
+PostgreSQL is the only `ExperimentStore` adapter. Versioned SQL migrations are embedded in the binary and applied at startup; keep application-specific eligibility logic outside this service.
 
 
 ## 14. PostgreSQL persistence
@@ -342,4 +342,4 @@ The durable adapter uses GORM with PostgreSQL:
 - Indexed keys keep registry and assignment lookups lightweight.
 - Assignment creation uses `ON CONFLICT DO NOTHING`, then reads the existing row when another replica wins the race.
 - Prepared statements and a configured connection pool are enabled.
-- AutoMigrate is suitable for this base implementation; production should adopt versioned schema migrations.
+- Versioned SQL migrations are embedded in the binary and tracked in `schema_migrations`.
