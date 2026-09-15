@@ -34,7 +34,12 @@ func (h *ExperimentHandler) CreateExperiment(c *gin.Context) {
 }
 
 func (h *ExperimentHandler) ListExperiments(c *gin.Context) {
-	c.JSON(http.StatusOK, h.service.ListExperiments(c.Request.Context()))
+	experiments, err := h.service.ListExperiments(c.Request.Context())
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, experiments)
 }
 
 func (h *ExperimentHandler) GetExperiment(c *gin.Context) {
