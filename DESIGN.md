@@ -317,7 +317,7 @@ internal/config/                 environment configuration
 internal/router/                 Gin route registration
 internal/handler/                HTTP decoding and response mapping
 internal/service/                validation and assignment logic
-internal/store/                  in-memory persistence adapter
+internal/store/                  PostgreSQL and in-memory persistence adapters
 model/                           domain types
 ```
 
@@ -330,4 +330,16 @@ The service uses a ten-slot deterministic bucket space. Numeric subject IDs use 
 - No statistical analysis or automatic winner selection.
 - No application-specific eligibility rule engine.
 
-The next production-oriented seam should be a durable `ExperimentStore` adapter, not application-specific logic in the service.
+PostgreSQL is now the durable `ExperimentStore` adapter. Before production, replace AutoMigrate with versioned schema migrations; keep application-specific eligibility logic outside this service.
+
+
+## 14. PostgreSQL persistence
+
+The durable adapter uses GORM with PostgreSQL:
+
+- `experiments` stores the registry and variant allocation as JSONB.
+- `experiment_assignments` stores one assignment per `(experiment_key, subject_id)`.
+- Indexed keys keep registry and assignment lookups lightweight.
+- Assignment creation uses `ON CONFLICT DO NOTHING`, then reads the existing row when another replica wins the race.
+- Prepared statements and a configured connection pool are enabled.
+- AutoMigrate is suitable for this base implementation; production should adopt versioned schema migrations.
