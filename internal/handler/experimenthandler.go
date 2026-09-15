@@ -25,20 +25,20 @@ func (h *ExperimentHandler) CreateExperiment(c *gin.Context) {
 		writeError(c, service.ErrInvalidExperiment)
 		return
 	}
-	if err := h.service.CreateExperiment(experiment); err != nil {
+	if err := h.service.CreateExperiment(c.Request.Context(), experiment); err != nil {
 		writeError(c, err)
 		return
 	}
-	created, _ := h.service.GetExperiment(experiment.Key)
+	created, _ := h.service.GetExperiment(c.Request.Context(), experiment.Key)
 	c.JSON(http.StatusCreated, created)
 }
 
 func (h *ExperimentHandler) ListExperiments(c *gin.Context) {
-	c.JSON(http.StatusOK, h.service.ListExperiments())
+	c.JSON(http.StatusOK, h.service.ListExperiments(c.Request.Context()))
 }
 
 func (h *ExperimentHandler) GetExperiment(c *gin.Context) {
-	experiment, err := h.service.GetExperiment(c.Param("key"))
+	experiment, err := h.service.GetExperiment(c.Request.Context(), c.Param("key"))
 	if err != nil {
 		writeError(c, err)
 		return
@@ -65,7 +65,7 @@ func (h *ExperimentHandler) Resolve(c *gin.Context) {
 		writeError(c, service.ErrInvalidSubject)
 		return
 	}
-	result, err := h.service.Resolve(c.Param("key"), request.SubjectID, *request.Eligible)
+	result, err := h.service.Resolve(c.Request.Context(), c.Param("key"), request.SubjectID, *request.Eligible)
 	if err != nil {
 		writeError(c, err)
 		return
