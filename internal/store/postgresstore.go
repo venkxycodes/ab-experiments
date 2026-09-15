@@ -124,24 +124,25 @@ func (s *PostgresExperimentStore) GetExperiment(ctx context.Context, key string)
 	return record.toModel()
 }
 
-func (s *PostgresExperimentStore) ListExperiments(ctx context.Context) []model.Experiment {
+func (s *PostgresExperimentStore) ListExperiments(ctx context.Context) ([]model.Experiment, error) {
 	var records []experimentRecord
 	result := s.db.WithContext(ctx).
 		Select("key", "status", "variants").
 		Order("key ASC").
 		Find(&records)
 	if result.Error != nil {
-		return []model.Experiment{}
+		return nil, result.Error
 	}
 
 	experiments := make([]model.Experiment, 0, len(records))
 	for _, record := range records {
 		experiment, err := record.toModel()
-		if err == nil {
-			experiments = append(experiments, experiment)
+		if err != nil {
+			return nil, err
 		}
+		experiments = append(experiments, experiment)
 	}
-	return experiments
+	return experiments, nil
 }
 
 func (s *PostgresExperimentStore) GetOrCreateAssignment(ctx context.Context, assignment model.Assignment) (model.Assignment, error) {
