@@ -15,6 +15,14 @@ import (
 var migrationFiles embed.FS
 
 func runMigrations(db *sql.DB) error {
+	const migrationLock int64 = 71839421
+	if _, err := db.Exec("SELECT pg_advisory_lock($1)", migrationLock); err != nil {
+		return fmt.Errorf("acquire migration lock: %w", err)
+	}
+	defer func() {
+		_, _ = db.Exec("SELECT pg_advisory_unlock($1)", migrationLock)
+	}()
+
 	migrationTable := "CREATE TABLE IF NOT EXISTS schema_migrations (" +
 		"version BIGINT PRIMARY KEY, " +
 		"applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW())"
