@@ -17,7 +17,7 @@ var (
 type ExperimentStore interface {
 	CreateExperiment(ctx context.Context, experiment model.Experiment) error
 	GetExperiment(ctx context.Context, key string) (model.Experiment, error)
-	ListExperiments(ctx context.Context) []model.Experiment
+	ListExperiments(ctx context.Context) ([]model.Experiment, error)
 	GetOrCreateAssignment(ctx context.Context, assignment model.Assignment) (model.Assignment, error)
 }
 
@@ -56,7 +56,7 @@ func (s *InMemoryExperimentStore) GetExperiment(_ context.Context, key string) (
 	return cloneExperiment(experiment), nil
 }
 
-func (s *InMemoryExperimentStore) ListExperiments(_ context.Context) []model.Experiment {
+func (s *InMemoryExperimentStore) ListExperiments(_ context.Context) ([]model.Experiment, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -67,7 +67,7 @@ func (s *InMemoryExperimentStore) ListExperiments(_ context.Context) []model.Exp
 	sort.Slice(experiments, func(i, j int) bool {
 		return experiments[i].Key < experiments[j].Key
 	})
-	return experiments
+	return experiments, nil
 }
 
 func (s *InMemoryExperimentStore) GetOrCreateAssignment(_ context.Context, assignment model.Assignment) (model.Assignment, error) {
