@@ -12,10 +12,10 @@ A Go API built with Gin. The service is intentionally application-agnostic:
 - The assignment remains stable for the lifetime of the experiment.
 - Exposure and business outcome events remain the responsibility of the integrating application.
 
-Storage backends:
+Storage:
 
 - PostgreSQL through GORM for durable experiments and assignments.
-- In-memory storage as the default fallback for tests and quick local runs.
+- PostgreSQL is required; there is no in-memory fallback.
 
 ## Run with PostgreSQL
 
@@ -34,15 +34,13 @@ DATABASE_URL='host=localhost user=ab_experiments password=ab_experiments dbname=
 go run ./cmd/api
 ```
 
-The service automatically creates the `experiments` and `experiment_assignments` tables on startup using GORM AutoMigrate.
+The service runs embedded, versioned SQL migrations on startup. Applied versions are recorded in `schema_migrations`.
 
 Useful database settings:
 
 - `DB_MAX_OPEN_CONNS` defaults to `10`
 - `DB_MAX_IDLE_CONNS` defaults to `5`
 - `PORT` defaults to `:8080`
-
-If `STORAGE_BACKEND` and `DATABASE_URL` are not set, the service uses in-memory storage.
 
 ## API
 
