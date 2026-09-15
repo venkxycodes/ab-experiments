@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"testing"
 
 	"github.com/venkxycodes/ab-experiments/internal/store"
@@ -9,7 +10,8 @@ import (
 
 func TestResolvePersistsStableAssignment(t *testing.T) {
 	svc := NewExperimentService(store.NewInMemoryExperimentStore())
-	err := svc.CreateExperiment(model.Experiment{
+	ctx := context.Background()
+	err := svc.CreateExperiment(ctx, model.Experiment{
 		Key: "onboarding_sku_discovery", Status: model.StatusRunning,
 		Variants: []model.Variant{{Key: "control", Weight: 50}, {Key: "treatment", Weight: 50}},
 	})
@@ -17,11 +19,11 @@ func TestResolvePersistsStableAssignment(t *testing.T) {
 		t.Fatalf("create experiment: %v", err)
 	}
 
-	first, err := svc.Resolve("onboarding_sku_discovery", "123", true)
+	first, err := svc.Resolve(ctx, "onboarding_sku_discovery", "123", true)
 	if err != nil {
 		t.Fatalf("first resolve: %v", err)
 	}
-	second, err := svc.Resolve("onboarding_sku_discovery", "123", true)
+	second, err := svc.Resolve(ctx, "onboarding_sku_discovery", "123", true)
 	if err != nil {
 		t.Fatalf("second resolve: %v", err)
 	}
@@ -38,7 +40,8 @@ func TestResolvePersistsStableAssignment(t *testing.T) {
 
 func TestIneligibleSubjectIsNotAssigned(t *testing.T) {
 	svc := NewExperimentService(store.NewInMemoryExperimentStore())
-	err := svc.CreateExperiment(model.Experiment{
+	ctx := context.Background()
+	err := svc.CreateExperiment(ctx, model.Experiment{
 		Key: "onboarding_sku_discovery", Status: model.StatusRunning,
 		Variants: []model.Variant{{Key: "control", Weight: 50}, {Key: "treatment", Weight: 50}},
 	})
@@ -46,7 +49,7 @@ func TestIneligibleSubjectIsNotAssigned(t *testing.T) {
 		t.Fatalf("create experiment: %v", err)
 	}
 
-	result, err := svc.Resolve("onboarding_sku_discovery", "123", false)
+	result, err := svc.Resolve(ctx, "onboarding_sku_discovery", "123", false)
 	if err != nil {
 		t.Fatalf("resolve ineligible subject: %v", err)
 	}
