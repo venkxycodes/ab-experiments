@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ab_experiments
+      POSTGRES_USER: ab_experiments
+      POSTGRES_PASSWORD: ab_experiments
+    ports:
+      - "5432:5432"
+    volumes:
+      - ab_experiments_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  ab_experiments_postgres_data:
