@@ -9,7 +9,7 @@ import (
 )
 
 func TestResolvePersistsStableAssignment(t *testing.T) {
-	svc := NewExperimentService(store.NewInMemoryExperimentStore())
+	svc := NewExperimentService(newStubStore())
 	ctx := context.Background()
 	err := svc.CreateExperiment(ctx, model.Experiment{
 		Key: "onboarding_sku_discovery", Status: model.StatusRunning,
@@ -39,7 +39,7 @@ func TestResolvePersistsStableAssignment(t *testing.T) {
 }
 
 func TestIneligibleSubjectIsNotAssigned(t *testing.T) {
-	svc := NewExperimentService(store.NewInMemoryExperimentStore())
+	svc := NewExperimentService(newStubStore())
 	ctx := context.Background()
 	err := svc.CreateExperiment(ctx, model.Experiment{
 		Key: "onboarding_sku_discovery", Status: model.StatusRunning,
@@ -56,4 +56,49 @@ func TestIneligibleSubjectIsNotAssigned(t *testing.T) {
 	if result.Eligible || result.Assignment != nil {
 		t.Fatal("ineligible subject must not receive an assignment")
 	}
+}
+
+type stubStore struct {
+	experiments map[string]model.Experiment
+	assignments map[string]model.Assignment
+}
+
+func newStubStore() *stubStore {
+	return &stubStore{
+		experiments: make(map[string]model.Experiment),
+		assignments: make(map[string]model.Assignment),
+	}
+}
+
+func (s *stubStore) CreateExperiment(_ context.Context, experiment model.Experiment) error {
+	if _, exists := s.experiments[experiment.Key]; exists {
+		return store.ErrConflict
+	}
+	s.experiments[experiment.Key] = experiment
+	return nil
+}
+
+func (s *stubStore) GetExperiment(_ context.Context, key string) (model.Experiment, error) {
+	experiment, exists := s.experiments[key]
+	if !exists {
+		return model.Experiment{}, store.ErrNotFound
+	}
+	return experiment, nil
+}
+
+func (s *stubStore) ListExperiments(_ context.Context) ([]model.Experiment, error) {
+	experiments := make([]model.Experiment, 0, len(s.experiments))
+	for _, experiment := range s.experiments {
+		experiments = append(experiments, experiment)
+	}
+	return experiments, nil
+}
+
+func (s *stubStore) GetOrCreateAssignment(_ context.Context, assignment model.Assignment) (model.Assignment, error) {
+	key := assignment.ExperimentKey + ":" + assignment.SubjectID
+	if existing, exists := s.assignments[key]; exists {
+		return existing, nil
+	}
+	s.assignments[key] = assignment
+	return assignment, nil
 }
