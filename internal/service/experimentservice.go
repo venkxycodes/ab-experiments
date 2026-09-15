@@ -1,13 +1,13 @@
 package service
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"hash/fnv"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/venkxycodes/ab-experiments/internal/store"
@@ -21,41 +21,41 @@ var (
 )
 
 type ExperimentService interface {
-	CreateExperiment(experiment model.Experiment) error
-	GetExperiment(key string) (model.Experiment, error)
-	ListExperiments() []model.Experiment
-	Resolve(key, subjectID string, eligible bool) (model.ResolveResult, error)
+	CreateExperiment(ctx context.Context, experiment model.Experiment) error
+	GetExperiment(ctx context.Context, key string) (model.Experiment, error)
+	ListExperiments(ctx context.Context) []model.Experiment
+	Resolve(ctx context.Context, key, subjectID string, eligible bool) (model.ResolveResult, error)
 }
 
 type experimentService struct {
 	repository store.ExperimentStore
-	mu         sync.Mutex
 }
 
 func NewExperimentService(repository store.ExperimentStore) ExperimentService {
 	return &experimentService{repository: repository}
 }
 
-func (s *experimentService) CreateExperiment(experiment model.Experiment) error {
+func (s *experimentService) CreateExperiment(ctx context.Context, experiment model.Experiment) error {
 	if err := validateExperiment(&experiment); err != nil {
 		return err
 	}
-	return s.repository.CreateExperiment(experiment)
+	return s.repository.CreateExperiment(ctx, experiment)
 }
 
-func (s *experimentService) GetExperiment(key string) (model.Experiment, error) {
-	return s.repository.GetExperiment(key)
+func (s *experimentService) GetExperiment(ctx context.Context, key string) (model.Experiment, error) {
+	return s.repository.GetExperiment(ctx, key)
 }
 
-func (s *experimentService) ListExperiments() []model.Experiment {
-	return s.repository.ListExperiments()
+func (s *experimentService) ListExperiments(ctx context.Context) []model.Experiment {
+	return s.repository.ListExperiments(ctx)
 }
 
-func (s *experimentService) Resolve(key, subjectID string, eligible bool) (model.ResolveResult, error) {
+func (s *experimentService) Resolve(ctx context.Context, key, subjectID string, eligible bool) (model.ResolveResult, error) {
 	if strings.TrimSpace(subjectID) == "" {
 		return model.ResolveResult{}, ErrInvalidSubject
 	}
-	experiment, err := s.repository.GetExperiment(key)
+
+	experiment, err := s.repository.GetExperiment(ctx, key)
 	if err != nil {
 		return model.ResolveResult{}, err
 	}
@@ -64,13 +64,6 @@ func (s *experimentService) Resolve(key, subjectID string, eligible bool) (model
 	}
 	if !eligible {
 		return model.ResolveResult{Eligible: false}, nil
-	}
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if assignment, err := s.repository.GetAssignment(key, subjectID); err == nil {
-		return model.ResolveResult{Eligible: true, Assignment: &assignment}, nil
 	}
 
 	bucket := stableBucket(key, subjectID)
@@ -82,17 +75,11 @@ func (s *experimentService) Resolve(key, subjectID string, eligible bool) (model
 		Bucket:        bucket,
 		AssignedAt:    time.Now().UTC(),
 	}
-
-	if err := s.repository.CreateAssignment(assignment); err != nil {
-		if errors.Is(err, store.ErrConflict) {
-			existing, getErr := s.repository.GetAssignment(key, subjectID)
-			if getErr == nil {
-				return model.ResolveResult{Eligible: true, Assignment: &existing}, nil
-			}
-		}
+	persisted, err := s.repository.GetOrCreateAssignment(ctx, assignment)
+	if err != nil {
 		return model.ResolveResult{}, err
 	}
-	return model.ResolveResult{Eligible: true, Assignment: &assignment}, nil
+	return model.ResolveResult{Eligible: true, Assignment: &persisted}, nil
 }
 
 func validateExperiment(experiment *model.Experiment) error {
