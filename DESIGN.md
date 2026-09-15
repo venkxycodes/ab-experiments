@@ -325,7 +325,6 @@ The service uses a ten-slot deterministic bucket space. Numeric subject IDs use 
 
 ## 13. Deliberate V1 limitations
 
-- No database or cross-instance assignment consistency.
 - No experiment update or lifecycle administration endpoint yet.
 - No exposure/outcome event ingestion.
 - No statistical analysis or automatic winner selection.
