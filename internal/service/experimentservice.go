@@ -23,7 +23,7 @@ var (
 type ExperimentService interface {
 	CreateExperiment(ctx context.Context, experiment model.Experiment) error
 	GetExperiment(ctx context.Context, key string) (model.Experiment, error)
-	ListExperiments(ctx context.Context) []model.Experiment
+	ListExperiments(ctx context.Context) ([]model.Experiment, error)
 	Resolve(ctx context.Context, key, subjectID string, eligible bool) (model.ResolveResult, error)
 }
 
@@ -46,7 +46,7 @@ func (s *experimentService) GetExperiment(ctx context.Context, key string) (mode
 	return s.repository.GetExperiment(ctx, key)
 }
 
-func (s *experimentService) ListExperiments(ctx context.Context) []model.Experiment {
+func (s *experimentService) ListExperiments(ctx context.Context) ([]model.Experiment, error) {
 	return s.repository.ListExperiments(ctx)
 }
 
