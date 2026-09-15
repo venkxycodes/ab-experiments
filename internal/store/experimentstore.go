@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"errors"
 	"sort"
 	"sync"
@@ -14,11 +15,10 @@ var (
 )
 
 type ExperimentStore interface {
-	CreateExperiment(experiment model.Experiment) error
-	GetExperiment(key string) (model.Experiment, error)
-	ListExperiments() []model.Experiment
-	GetAssignment(experimentKey, subjectID string) (model.Assignment, error)
-	CreateAssignment(assignment model.Assignment) error
+	CreateExperiment(ctx context.Context, experiment model.Experiment) error
+	GetExperiment(ctx context.Context, key string) (model.Experiment, error)
+	ListExperiments(ctx context.Context) []model.Experiment
+	GetOrCreateAssignment(ctx context.Context, assignment model.Assignment) (model.Assignment, error)
 }
 
 type InMemoryExperimentStore struct {
@@ -34,9 +34,10 @@ func NewInMemoryExperimentStore() ExperimentStore {
 	}
 }
 
-func (s *InMemoryExperimentStore) CreateExperiment(experiment model.Experiment) error {
+func (s *InMemoryExperimentStore) CreateExperiment(_ context.Context, experiment model.Experiment) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
 	if _, exists := s.experiments[experiment.Key]; exists {
 		return ErrConflict
 	}
@@ -44,9 +45,10 @@ func (s *InMemoryExperimentStore) CreateExperiment(experiment model.Experiment) 
 	return nil
 }
 
-func (s *InMemoryExperimentStore) GetExperiment(key string) (model.Experiment, error) {
+func (s *InMemoryExperimentStore) GetExperiment(_ context.Context, key string) (model.Experiment, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+
 	experiment, exists := s.experiments[key]
 	if !exists {
 		return model.Experiment{}, ErrNotFound
@@ -54,9 +56,10 @@ func (s *InMemoryExperimentStore) GetExperiment(key string) (model.Experiment, e
 	return cloneExperiment(experiment), nil
 }
 
-func (s *InMemoryExperimentStore) ListExperiments() []model.Experiment {
+func (s *InMemoryExperimentStore) ListExperiments(_ context.Context) []model.Experiment {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+
 	experiments := make([]model.Experiment, 0, len(s.experiments))
 	for _, experiment := range s.experiments {
 		experiments = append(experiments, cloneExperiment(experiment))
@@ -67,25 +70,16 @@ func (s *InMemoryExperimentStore) ListExperiments() []model.Experiment {
 	return experiments
 }
 
-func (s *InMemoryExperimentStore) GetAssignment(experimentKey, subjectID string) (model.Assignment, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	assignment, exists := s.assignments[assignmentKey(experimentKey, subjectID)]
-	if !exists {
-		return model.Assignment{}, ErrNotFound
-	}
-	return assignment, nil
-}
-
-func (s *InMemoryExperimentStore) CreateAssignment(assignment model.Assignment) error {
+func (s *InMemoryExperimentStore) GetOrCreateAssignment(_ context.Context, assignment model.Assignment) (model.Assignment, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
 	key := assignmentKey(assignment.ExperimentKey, assignment.SubjectID)
-	if _, exists := s.assignments[key]; exists {
-		return ErrConflict
+	if existing, exists := s.assignments[key]; exists {
+		return existing, nil
 	}
 	s.assignments[key] = assignment
-	return nil
+	return assignment, nil
 }
 
 func assignmentKey(experimentKey, subjectID string) string {
