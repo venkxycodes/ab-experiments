@@ -75,7 +75,7 @@ func OpenPostgresExperimentStore(dsn string, cfg PostgresConfig) (*PostgresExper
 	}
 
 	store := &PostgresExperimentStore{db: db, sqlDB: sqlDB}
-	if err := db.AutoMigrate(&experimentRecord{}, &assignmentRecord{}); err != nil {
+	if err := runMigrations(sqlDB); err != nil {
 		_ = sqlDB.Close()
 		return nil, err
 	}
