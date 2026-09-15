@@ -7,26 +7,15 @@ import (
 
 type Config struct {
 	Port           string
-	StorageBackend string
 	DatabaseURL    string
 	DBMaxOpenConns int
 	DBMaxIdleConns int
 }
 
 func Load() Config {
-	databaseURL := os.Getenv("DATABASE_URL")
-	backend := os.Getenv("STORAGE_BACKEND")
-	if backend == "" {
-		backend = "memory"
-		if databaseURL != "" {
-			backend = "postgres"
-		}
-	}
-
 	return Config{
 		Port:           envOrDefault("PORT", ":8080"),
-		StorageBackend: backend,
-		DatabaseURL:    databaseURL,
+		DatabaseURL:    os.Getenv("DATABASE_URL"),
 		DBMaxOpenConns: envIntOrDefault("DB_MAX_OPEN_CONNS", 10),
 		DBMaxIdleConns: envIntOrDefault("DB_MAX_IDLE_CONNS", 5),
 	}
